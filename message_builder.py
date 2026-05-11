@@ -1,9 +1,6 @@
 MAX_TASKS = 10
 
 _EMPTY_TEXT = "미작성"
-_EMPTY_DAYS = "예상 미입력"
-_EMPTY_PROJECT = "프로젝트 미지정"
-_EMPTY_STATUS = "상태 미지정"
 _NO_TASKS = "없습니다."
 
 
@@ -11,20 +8,19 @@ def _t(value: str) -> str:
     return value if value else _EMPTY_TEXT
 
 
-def _format_task(task: dict, show_status: bool = True) -> str:
+def _format_task(task: dict) -> str:
     name = task["name"] or _EMPTY_TEXT
-    project = task["project"] or _EMPTY_PROJECT
-    days = f"예상 {task['days']}일" if task["days"] is not None else _EMPTY_DAYS
-    if show_status:
-        status = task["status"] or _EMPTY_STATUS
-        return f"- {name} / {status} / {project} / {days}"
-    return f"- {name} / {project}"
+    project = task["project"] or "프로젝트 미지정"
+    assignee = task["assignee"] or "담당자 미지정"
+    period = task["period"] or "기간 미설정"
+    status = task["status"] or "상태 미지정"
+    return f"- {name} | {project} | {assignee} | {period} | {status}"
 
 
-def _format_task_list(tasks: list[dict], show_status: bool = True) -> str:
+def _format_task_list(tasks: list[dict]) -> str:
     if not tasks:
         return f"- {_NO_TASKS}"
-    lines = [_format_task(t, show_status=show_status) for t in tasks[:MAX_TASKS]]
+    lines = [_format_task(t) for t in tasks[:MAX_TASKS]]
     remaining = len(tasks) - MAX_TASKS
     if remaining > 0:
         lines.append(f"- 외 {remaining}건은 Sprint 페이지에서 확인해 주세요.")
@@ -38,18 +34,14 @@ def _build_warnings(
     last_tasks: list[dict],
 ) -> list[str]:
     warnings = []
+    if not current_sprint.get("sprint_question"):
+        warnings.append("이번 Sprint 계획(Sprint Question)이 비어 있습니다.")
     if not current_tasks:
         warnings.append("이번 Sprint에 연결된 작업이 없습니다. 작업을 추가해 주세요.")
+    if any(not t["period"] for t in current_tasks):
+        warnings.append("이번 Sprint 작업 중 작업 기간이 비어 있는 항목이 있습니다.")
     if last_sprint and any(t["status"] in ("시작 전", "진행 중") for t in last_tasks):
         warnings.append("지난 Sprint에서 이어지는 작업의 상태를 확인해 주세요.")
-    if any(t["days"] is None for t in current_tasks):
-        warnings.append("이번 Sprint 작업 중 예상 일수가 비어 있는 항목이 있습니다.")
-    if not current_sprint.get("work_area"):
-        warnings.append("이번 Sprint 작업 영역이 비어 있습니다.")
-    if not current_sprint.get("completion_unit"):
-        warnings.append("이번 Sprint 완료 단위가 비어 있습니다.")
-    if not current_sprint.get("end_check"):
-        warnings.append("Sprint 종료 시 확인할 결과가 비어 있습니다.")
     if last_sprint and last_tasks and not any(t["status"] == "완료" for t in last_tasks):
         warnings.append("지난 Sprint 완료 작업이 없습니다. 상태 업데이트가 누락되었는지 확인해 주세요.")
     return warnings
@@ -69,12 +61,10 @@ def build_message(
         f"기간: {_t(current_sprint['period'])}",
         "",
         "🧭 이번 Sprint 계획",
-        f"- 작업 영역: {_t(current_sprint['work_area'])}",
-        f"- 완료 단위: {_t(current_sprint['completion_unit'])}",
-        f"- 종료 시 확인 결과: {_t(current_sprint['end_check'])}",
+        _t(current_sprint.get("sprint_question", "")),
         "",
         "🗂 이번 Sprint 작업",
-        _format_task_list(current_tasks, show_status=True),
+        _format_task_list(current_tasks),
         "",
     ]
 
@@ -92,10 +82,10 @@ def build_message(
             f"- 시작 전: {len(not_started)}건",
             "",
             "📌 지난 Sprint에서 이어지는 작업",
-            _format_task_list(carryover, show_status=True),
+            _format_task_list(carryover),
             "",
             "✅ 지난 Sprint 완료 작업",
-            _format_task_list(completed, show_status=False),
+            _format_task_list(completed),
             "",
         ]
     else:

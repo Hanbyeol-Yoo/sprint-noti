@@ -15,13 +15,6 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Debug DB schema
-        run: python debug_schema.py
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          SPRINT_DB_ID: ${{ secrets.SPRINT_DB_ID }}
-          PROJECT_DB_ID: ${{ secrets.PROJECT_DB_ID }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Send sprint notification
         run: python main.py
         env:

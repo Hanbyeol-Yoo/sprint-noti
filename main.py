@@ -16,8 +16,8 @@ def main() -> None:
         return
 
     last_sprint = nc.get_sprint("마지막")
-    current_tasks = nc.get_tasks(current_sprint["id"])
-    last_tasks = nc.get_tasks(last_sprint["id"]) if last_sprint else []
+    current_tasks = nc.get_tasks(current_sprint)
+    last_tasks = nc.get_tasks(last_sprint) if last_sprint else []
 
     message = mb.build_message(current_sprint, last_sprint, current_tasks, last_tasks)
     send_slack(message)

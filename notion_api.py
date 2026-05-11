@@ -29,6 +29,11 @@ def _get_date_range(prop: dict) -> str:
     return f"{start} ~ {end}" if end else start
 
 
+def _get_people(prop: dict) -> str:
+    people = prop.get("people", [])
+    return ", ".join(p.get("name", "") for p in people if p.get("name"))
+
+
 def get_sprint(status: str) -> dict | None:
     res = _client.databases.query(
         database_id=config.SPRINT_DB_ID,
@@ -39,42 +44,29 @@ def get_sprint(status: str) -> dict | None:
         return None
     p = pages[0]
     props = p["properties"]
+    task_ids = [r["id"] for r in props.get("스프린트 작업", {}).get("relation", [])]
     return {
         "id": p["id"],
         "name": _get_text(props.get("이름", {}), "title"),
         "period": _get_date_range(props.get("기간", {})),
-        "work_area": _get_text(props.get("작업 영역", {})),
-        "completion_unit": _get_text(props.get("이번 Sprint 완료 단위", {})),
-        "end_check": _get_text(props.get("종료 시 확인 결과", {})),
-        "url": props.get("페이지 URL", {}).get("url", ""),
+        "sprint_question": _get_text(props.get("Sprint Question", {})),
+        "url": p["url"],
+        "task_ids": task_ids,
     }
 
 
-def get_tasks(sprint_id: str) -> list[dict]:
-    results = []
-    cursor = None
-    while True:
-        kwargs: dict = {
-            "database_id": config.PROJECT_DB_ID,
-            "filter": {"property": "Sprint", "relation": {"contains": sprint_id}},
-        }
-        if cursor:
-            kwargs["start_cursor"] = cursor
-        res = _client.databases.query(**kwargs)
-        results.extend(res.get("results", []))
-        if not res.get("has_more"):
-            break
-        cursor = res["next_cursor"]
+def _fetch_task(page_id: str) -> dict:
+    page = _client.pages.retrieve(page_id=page_id)
+    props = page["properties"]
+    app_items = (props.get("Application") or {}).get("multi_select", [])
+    return {
+        "name": _get_text(props.get("작업 이름", {}), "title"),
+        "status": _get_select(props.get("상태") or {}),
+        "project": ", ".join(i["name"] for i in app_items),
+        "assignee": _get_people(props.get("담당자") or {}),
+        "period": _get_date_range(props.get("작업 기간") or {}),
+    }
 
-    tasks = []
-    for page in results:
-        props = page["properties"]
-        status_prop = props.get("상태 요약") or props.get("상태") or {}
-        project_prop = props.get("프로젝트") or props.get("Application") or {}
-        tasks.append({
-            "name": _get_text(props.get("이름", {}), "title"),
-            "status": _get_select(status_prop),
-            "project": _get_select(project_prop),
-            "days": props.get("예상 일수", {}).get("number"),
-        })
-    return tasks
+
+def get_tasks(sprint: dict) -> list[dict]:
+    return [_fetch_task(tid) for tid in sprint.get("task_ids", [])]
