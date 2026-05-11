@@ -71,12 +71,8 @@ def _fetch_task(page_id: str) -> dict:
     page = _client.pages.retrieve(page_id=page_id)
     props = page["properties"]
 
-    app_items = (props.get("Application") or {}).get("multi_select", [])
-    project = ", ".join(i["name"] for i in app_items)
-    if not project:
-        proj_rel = (props.get("프로젝트") or {}).get("relation", [])
-        if proj_rel:
-            project = _fetch_page_title(proj_rel[0]["id"])
+    proj_rel = (props.get("프로젝트") or {}).get("relation", [])
+    project = _fetch_page_title(proj_rel[0]["id"]) if proj_rel else ""
 
     return {
         "name": _get_text(props.get("작업 이름", {}), "title"),
