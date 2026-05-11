@@ -1,6 +1,6 @@
 import requests
 import config
-import notion_client as nc
+import notion_api as nc
 import message_builder as mb
 
 
