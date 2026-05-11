@@ -1,0 +1,24 @@
+name: Sprint Notification
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # UTC 월요일 00:00 = KST 09:00
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Send sprint notification
+        run: python main.py
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SPRINT_DB_ID: ${{ secrets.SPRINT_DB_ID }}
+          PROJECT_DB_ID: ${{ secrets.PROJECT_DB_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
