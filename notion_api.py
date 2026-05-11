@@ -32,7 +32,7 @@ def _get_date_range(prop: dict) -> str:
 def get_sprint(status: str) -> dict | None:
     res = _client.databases.query(
         database_id=config.SPRINT_DB_ID,
-        filter={"property": "스프린트 상태", "select": {"equals": status}},
+        filter={"property": "스프린트 상태", "status": {"equals": status}},
     )
     pages = res.get("results", [])
     if not pages:
