@@ -55,14 +55,33 @@ def get_sprint(status: str) -> dict | None:
     }
 
 
+def _fetch_page_title(page_id: str) -> str:
+    try:
+        page = _client.pages.retrieve(page_id=page_id)
+        for prop in page["properties"].values():
+            if prop.get("type") == "title":
+                items = prop.get("title", [])
+                return items[0]["plain_text"] if items else ""
+    except Exception:
+        pass
+    return ""
+
+
 def _fetch_task(page_id: str) -> dict:
     page = _client.pages.retrieve(page_id=page_id)
     props = page["properties"]
+
     app_items = (props.get("Application") or {}).get("multi_select", [])
+    project = ", ".join(i["name"] for i in app_items)
+    if not project:
+        proj_rel = (props.get("프로젝트") or {}).get("relation", [])
+        if proj_rel:
+            project = _fetch_page_title(proj_rel[0]["id"])
+
     return {
         "name": _get_text(props.get("작업 이름", {}), "title"),
         "status": _get_select(props.get("상태") or {}),
-        "project": ", ".join(i["name"] for i in app_items),
+        "project": project,
         "assignee": _get_people(props.get("담당자") or {}),
         "period": _get_date_range(props.get("작업 기간") or {}),
     }
