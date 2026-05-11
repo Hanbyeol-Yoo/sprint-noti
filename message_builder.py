@@ -1,3 +1,5 @@
+import config
+
 MAX_TASKS = 10
 
 _EMPTY_TEXT = "미작성"
@@ -98,7 +100,7 @@ def build_message(
     warnings = _build_warnings(current_sprint, current_tasks, last_sprint, last_tasks)
     lines.append("⚠️ 확인 필요")
     lines += [f"- {w}" for w in warnings] if warnings else ["- 없습니다."]
-    lines += ["", "🔗 Sprint 페이지", current_sprint.get("url") or "링크 없음"]
+    lines += ["", "🔗 Sprint 페이지", config.SPRINT_PAGE_URL]
 
     return "\n".join(lines)
 
