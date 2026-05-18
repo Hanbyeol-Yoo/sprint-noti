@@ -2,7 +2,7 @@ name: Sprint Notification
 
 on:
   schedule:
-    - cron: '30 0 * * 1'  # UTC 월요일 00:30 = KST 09:30
+    - cron: '0 1 * * 1'  # UTC 월요일 01:00 = KST 10:00
   workflow_dispatch:
 
 jobs:
