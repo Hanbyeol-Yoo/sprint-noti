@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from notion_client import Client
 import config
 
@@ -29,6 +31,17 @@ def _get_date_range(prop: dict) -> str:
     return f"{start} ~ {end}" if end else start
 
 
+def _sprint_period(prop: dict) -> str:
+    # ponytail: Notion 자동 생성 스프린트는 주 단위라 일요일에 끝남. 알림에서는 토·일 종료일만 직전 금요일로 표시
+    d = prop.get("date") or {}
+    start, end = d.get("start", ""), d.get("end", "")
+    if end:
+        e = date.fromisoformat(end[:10])
+        if e.weekday() >= 5:
+            end = (e - timedelta(days=e.weekday() - 4)).isoformat()
+    return f"{start} ~ {end}" if end else start
+
+
 def _get_people(prop: dict) -> str:
     people = prop.get("people", [])
     return ", ".join(p.get("name", "") for p in people if p.get("name"))
@@ -48,7 +61,7 @@ def get_sprint(status: str) -> dict | None:
     return {
         "id": p["id"],
         "name": _get_text(props.get("이름", {}), "title"),
-        "period": _get_date_range(props.get("기간", {})),
+        "period": _sprint_period(props.get("기간", {})),
         "sprint_question": _get_text(props.get("Sprint Question", {})),
         "url": p["url"],
         "task_ids": task_ids,
